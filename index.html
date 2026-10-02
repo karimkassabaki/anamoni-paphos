@@ -299,6 +299,8 @@ input[type=range]{accent-color:var(--accent);width:100%}
 @keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
 .callout{border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--panel);padding:10px 12px;border-radius:4px;font-size:12.5px;color:var(--ink-2)}
 .callout b{color:var(--ink)}
+.callout.warn{border-left-color:var(--warn);background:color-mix(in srgb,var(--warn) 9%,var(--panel))}
+.callout.warn a{color:var(--accent);font-weight:500}
 .legend-row{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11.5px;color:var(--ink-2)}
 .legend-row i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:5px}
 .kbitem{padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
@@ -1845,27 +1847,60 @@ const TESTS = (() => {
 /* ANAMONI UI, part 3: photo screening, Studio, permit & assistant, co-owners, scenario, method, boot */
 "use strict";
 // ---------- AI availability ----------
+const LIVE_URL = "https://claude.ai/artifact/PuxTkPPh7BHdij3pXKeP4R";
+// Why the AI steps are not live here: "nohost" (opened outside Claude), "signin" (inside Claude but not offered, usually signed out),
+// "off" (declined, or not allowed for this account), "noimages" (live, but this app cannot send photos).
+function aiWhy(img) {
+  if (S.aiState === "checking") return "checking";
+  if (S.aiState === "live") return img && S.aiImages === false ? "noimages" : "";
+  return S.aiWhy || "signin";
+}
+function aiNote(img) {
+  const w = aiWhy(img), what = img ? "screens your own photo" : "answers your own questions";
+  const link = `<a href="${LIVE_URL}" target="_blank" rel="noopener">live demo on Claude</a>`;
+  return w === "nohost" ? `<b>This copy is not connected to Claude</b>, so the AI steps replay recorded runs. To try it on your own ${img ? "photo" : "questions"}, open the ${link} and sign in.`
+    : w === "signin" ? `<b>Sign in to run the AI live.</b> Use the <b>Sign in</b> button at the top of this page. Once you are signed in to Claude, this page ${what} live; until then it replays recorded runs. Already signed in? Open the ${link} in a web browser on a computer.`
+    : w === "off" ? `<b>Live AI was declined or is not allowed for this account</b>, so recorded runs are shown. If you declined, reload the page and choose Allow.`
+    : w === "noimages" ? `<b>This app cannot send photos to Claude.</b> Open the ${link} in a web browser on a computer to screen your own photo.`
+    : "";
+}
+function aiShort(img) {
+  const w = aiWhy(img);
+  return w === "nohost" ? `This copy is not connected to Claude. Open the live demo on Claude (${LIVE_URL}) to ${img ? "screen your own photo" : "ask your own question"}.`
+    : w === "signin" ? `Sign in to Claude with the button at the top of this page to ${img ? "screen your own photo" : "ask your own question"}.`
+    : w === "off" ? "Live AI was declined for this page. Reload and choose Allow to use it."
+    : w === "noimages" ? "This app cannot send photos to Claude. Open the link in a web browser on a computer."
+    : w === "checking" ? "Still checking whether live AI is available. Try again in a moment." : "";
+}
+function paintAIBanners() {
+  $$(".aiban").forEach(el => { const n = aiNote(el.dataset.img === "1"); el.hidden = !n; el.innerHTML = n ? `<div class="callout warn">${n}</div>` : ""; });
+}
 function setAIChip() {
   const c = $("#aimode"); if (!c) return;
   c.classList.toggle("live", S.aiState === "live"); c.classList.toggle("rec", S.aiState !== "live");
-  $("span:last-child", c).textContent = S.aiState === "live" ? "AI: live · Claude" : S.aiState === "checking" ? "AI: checking…" : "AI: recorded runs";
-  c.title = S.aiState === "live" ? "AI calls run live on your Claude account (you will be asked to allow them)." : "Live AI is not available in this view, so AI panels replay recorded runs. Every calculation still runs live.";
+  $("span:last-child", c).textContent = S.aiState === "live" ? "AI: live · Claude" : S.aiState === "checking" ? "AI: checking…" : S.aiWhy === "signin" ? "AI: recorded · sign in for live" : "AI: recorded runs";
+  c.title = S.aiState === "live" ? "AI calls run live on your Claude account (you will be asked to allow them)." : (aiShort(false) || "AI panels replay recorded runs.") + " Every calculation still runs live.";
+  if (!c._wired) { c._wired = true; c.style.cursor = "help"; c.addEventListener("click", () => { if (S.aiState !== "live") toast(aiShort(false)); }); }
 }
 async function initAI() {
-  if (!window.claude || typeof window.claude.use !== "function") { S.aiState = "recorded"; setAIChip(); return; }
-  try {
-    const s = await window.claude.use("sample");
-    if (s) { S.ai = s; S.aiState = "live"; try { const lim = await s.limits(); S.aiImages = !!(lim && lim.images); } catch { S.aiImages = false; } }
-    else S.aiState = "recorded";
-  } catch { S.aiState = "recorded"; }
-  setAIChip();
+  let framed = true; try { framed = window.top !== window; } catch { framed = true; }
+  if (!window.claude || typeof window.claude.use !== "function") { S.aiState = "recorded"; S.aiWhy = "nohost"; }
+  else {
+    try {
+      const s = await window.claude.use("sample");
+      if (s) { S.ai = s; S.aiState = "live"; try { const lim = await s.limits(); S.aiImages = !!(lim && lim.images); } catch { S.aiImages = false; } }
+      else { S.aiState = "recorded"; S.aiWhy = framed ? "signin" : "nohost"; }
+    } catch { S.aiState = "recorded"; S.aiWhy = framed ? "signin" : "nohost"; }
+  }
+  setAIChip(); paintAIBanners();
 }
 const aiBadge = src => src === "live" ? `<span class="tag" style="border-color:var(--accent);color:var(--accent)">${ICON.spark}live · Claude</span>` : `<span class="tag">recorded run</span>`;
 function aiErr(e) {
   const c = e && e.code;
-  if (c === "not_granted" || c === "sampling_disabled" || c === "capability_disabled" || c === "not_declared") { S.aiState = "recorded"; setAIChip(); return "Live AI is switched off for this view, so the recorded run is shown instead."; }
+  if (c === "not_granted" || c === "sampling_disabled" || c === "capability_disabled" || c === "not_declared") { S.aiState = "recorded"; S.aiWhy = "off"; setAIChip(); paintAIBanners(); return "Live AI is switched off for this view, so the recorded run is shown instead."; }
   if (c === "rate_limited") return "Too many requests just now. Wait a minute and try again.";
-  if (c === "images_unavailable") { S.aiImages = false; return "This view cannot send images to Claude. The recorded run is shown instead."; }
+  if (c === "session_expired") return "Your Claude session has expired. Sign in again, then retry.";
+  if (c === "images_unavailable") { S.aiImages = false; paintAIBanners(); return "This view cannot send images to Claude. The recorded run is shown instead."; }
   if (c === "cancelled") return "Stopped.";
   return "The AI call did not complete. Try again, or use the recorded run.";
 }
@@ -1902,6 +1937,7 @@ function renderScan() {
   const v = $("#v-scan");
   v.innerHTML = `
   <div class="callout"><b>Scan, live.</b> Upload a street photo of any building, for example your own family house. A vision-language model reads the facade and fills in the screening fields with evidence and a confidence for each. The engines then turn those readings into a draft passport. Photos stay in your browser and are sent only to Claude for this one reading.</div>
+  <div class="aiban" data-img="1" hidden></div>
   <div class="g-2">
     <div class="stack">
       <div class="panel"><div class="ph"><h3>Facade image</h3><span class="sp"></span><button class="btn" id="useSample">Use the sample facade</button></div>
@@ -1914,6 +1950,7 @@ function renderScan() {
     </div>
     <div class="stack" id="scanOut"></div>
   </div>`;
+  paintAIBanners();
   const setImg = (o) => { S.scanImg = o; $("#shot").innerHTML = `<div class="shot"><img alt="${esc(o.name)}" src="${o.url}"><div class="cells">${[...Array(9)].map(() => "<div></div>").join("")}</div></div><div class="note" style="margin-top:6px">${esc(o.name)}</div>`; $("#runScan").disabled = false; if (S.scanRes && S.scanRes.img === o) paintScan(); else $("#scanOut").innerHTML = scanEmpty(); };
   const file = $("#file"), drop = $("#drop");
   file.addEventListener("change", () => { const f = file.files[0]; if (f) setImg({ blob: f, url: URL.createObjectURL(f), name: f.name }); });
@@ -1940,7 +1977,7 @@ function renderScan() {
     } else if (o.isSample) {
       stEl.innerHTML = `<span class="pulse"></span>Replaying the recorded run…`; await new Promise(r => setTimeout(r, 650));
       S.scanRes = { img: o, data: REC.screen, src: "recorded" }; stEl.textContent = "";
-    } else { stEl.textContent = "Live AI is not available in this view, so only the sample facade has a recorded run. Open the live link to screen your own photo."; return; }
+    } else { stEl.textContent = aiShort(true) || "Live AI is not available in this view."; paintAIBanners(); const bn = $(".aiban"); if (bn && !bn.hidden) bn.scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
     paintScan();
   });
   if (S.scanImg) setImg(S.scanImg);
@@ -2175,12 +2212,14 @@ function renderFlow() {
         <div class="pb" style="max-height:420px;overflow:auto">${KB.map(k => `<div class="kbitem"><b>${k.id}</b>${esc(k.en)} <a href="${esc(k.url)}" target="_blank" rel="noopener" class="small">${esc(k.source_title)}</a></div>`).join("")}</div></details></div>
     </div>
     <div class="panel chat"><div class="ph"><h3>Scheme assistant</h3><span class="sub">answers only from the sourced rules, in Greek or English</span><span class="sp"></span><span id="chatMode"></span></div>
+      <div class="aiban" data-img="0" hidden style="padding:10px 12px 0"></div>
       <div class="msgs" id="msgs"></div>
       <div class="sugg">${SUGG.map((q, i) => `<button data-i="${i}">${esc(q)}</button>`).join("")}</div>
       <form class="composer" id="composer"><input id="q" placeholder="Ask about the family-home scheme…" autocomplete="off" aria-label="Question"><button class="btn primary" id="sendBtn" type="submit">${ICON.send}Ask</button><button class="btn" id="stopBtn" type="button" hidden>${ICON.stop}Stop</button></form>
     </div>
   </div>`;
   $("#chatMode").innerHTML = S.aiState === "live" ? aiBadge("live") : `<span class="tag">recorded answers</span>`;
+  paintAIBanners();
   paintChat();
   $(".sugg").addEventListener("click", e => { const bt = e.target.closest("button"); if (bt) ask(SUGG[+bt.dataset.i]); });
   $("#composer").addEventListener("submit", e => { e.preventDefault(); const q = $("#q").value.trim(); if (q) { $("#q").value = ""; ask(q); } });
@@ -2229,7 +2268,7 @@ async function ask(q) {
       if (rec && !e.text) await replay(msg); else { a.pending = false; a.content = (e.text || "") + (e.text ? "\n\n" : "") + msg; a.src = "live"; paintChat(); }
     } finally { S.chatBusy = false; const sb = $("#sendBtn"), xb = $("#stopBtn"); if (sb) sb.hidden = false; if (xb) xb.hidden = true; }
   } else if (rec) { await replay(); }
-  else { a.pending = false; a.src = "recorded"; a.content = "Live AI is not available in this view, so I can only replay the suggested questions below. Open the live link to ask your own question."; paintChat(); }
+  else { a.pending = false; a.src = "recorded"; a.content = (aiShort(false) || "Live AI is not available in this view.") + " Until then I can replay the suggested questions below."; paintChat(); }
 }
 
 // ---------- Co-owner split (exact Shapley value) ----------
@@ -2409,7 +2448,7 @@ function renderMethod() {
   $("#evMode").addEventListener("click", async e => {
     const bt = e.target.closest("button"); if (!bt) return;
     if (bt.dataset.m === "rec") { $$("#evMode button").forEach(x => x.setAttribute("aria-pressed", x === bt)); if (S.evCtl) S.evCtl.abort(); showRec(); return; }
-    if (S.aiState !== "live" || !S.ai) { toast("Live AI is not available in this view. Open the live link to run the evaluation."); return; }
+    if (S.aiState !== "live" || !S.ai) { toast(aiShort(false).replace(/to ask your own question/, "to run the evaluation") || "Live AI is not available in this view."); return; }
     $$("#evMode button").forEach(x => x.setAttribute("aria-pressed", x === bt));
     $("#evM").innerHTML = `<div class="ev-src"><span class="aistate"><span class="pulse"></span>Claude is answering ${TESTS.EVAL.length} questions. This usually takes one to two minutes.</span></div>`; $("#evRows").innerHTML = "";
     S.evCtl = new AbortController();
