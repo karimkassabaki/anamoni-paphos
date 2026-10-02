@@ -1,0 +1,1 @@
+{"name": "anamoni-paphos", "private": true, "description": "ANAMONI proof of concept, Pafos 2.0 AI Innovation Competition", "devDependencies": {"@fontsource/ibm-plex-sans": "^5.0.0", "@fontsource/ibm-plex-mono": "^5.0.0", "three": "0.128.0"}}

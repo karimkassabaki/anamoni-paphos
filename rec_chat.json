@@ -1,0 +1,18 @@
+[
+  {
+    "q": "Μπορώ να κτίσω σπίτι για την κόρη μου πάνω από το σπίτι μου;",
+    "a": "Ναι, κατ' αρχήν. Το νέο σχέδιο επιτρέπει νέα αυτοτελή κατοικία σε υφιστάμενη οικιστική ιδιοκτησία για τη στέγαση μελών της οικογένειας, και ένας από τους τρόπους είναι ως όροφος πάνω από το υφιστάμενο σπίτι [K02, K03]. Οι πηγές διαφέρουν για το ποιοι συγγενείς καλύπτονται, αλλά δημοσιεύματα αναφέρουν ρητά τα παιδιά [K05, K06].\n\nΗ νέα κατοικία μπορεί να φτάσει τα 150 τ.μ., ή τα 180 τ.μ. σε τεμάχιο τουλάχιστον 1.000 τ.μ. [K07], ακόμη κι αν ο συντελεστής δόμησης έχει εξαντληθεί [K04]. Το σπίτι σας πρέπει να έχει πολεοδομική άδεια και άδεια οικοδομής [K08] και να μη βρίσκεται σε εξαιρούμενη περιοχή, όπως τουριστική ζώνη ή ελεγχόμενη αρχαιολογική περιοχή [K09, K10]. Η αίτηση υποβάλλεται στον ΕΟΑ έως τις 31 Δεκεμβρίου 2027 [K12, K13]. Για 10 χρόνια η νέα κατοικία δεν μπορεί να πωληθεί ή να μεταβιβαστεί, εκτός από κληρονομιά [K16].\n\nΟι πηγές του σχεδίου δεν αναφέρουν στατικό έλεγχο του υφιστάμενου σπιτιού [K19]. Αν αντέχει νέο όροφο πρέπει να το κρίνει αδειούχος πολιτικός μηχανικός."
+  },
+  {
+    "q": "My house was built in 1979. Does anyone check that it can carry a new floor?",
+    "a": "Not under the scheme itself. The scheme texts published so far do not mention any structural assessment of the existing house before a floor is added [K19].\n\nSeparately, ETEK notes that under the buildings energy-efficiency law, the owner of a building with a pre-1994 building permit must commission a structural assessment report from a licensed engineer before a major renovation [K38]. The scheme sources do not say whether that rule covers a new floor [K38]. ETEK's rapid assessment form covers existing buildings of up to two storeys, pilotis included [K37].\n\nYour house predates 1994, so ask a licensed civil engineer to assess whether it can carry the extra load before you apply. I can't make that judgement, and I can't tell you the house is safe."
+  },
+  {
+    "q": "Can I sell the new home later or put it in my son's name?",
+    "a": "Not for the first 10 years. The planning permission carries a restrictive covenant on the title deed, and for 10 years the new home cannot be sold or transferred, except through inheritance [K16]. The official Q&A gives the same answer about transferring the home to your children, so during those 10 years it can pass to them only by inheritance [K16].\n\nThe sources don't explain how the covenant is registered in each case, so ask EOA Paphos about yours [K13]."
+  },
+  {
+    "q": "Τι γίνεται αν δεν χωράει χώρος στάθμευσης στο οικόπεδο;",
+    "a": "Αν οι απαιτούμενοι χώροι στάθμευσης για τη νέα κατοικία δεν χωρούν στο τεμάχιο, μπορείτε να χρησιμοποιήσετε μηχανισμό εξαγοράς [K11]. Το τίμημα είναι €2.000, ή χαμηλότερο αν το ορίζει σχετική Εντολή [K11].\n\nΠόσοι χώροι απαιτούνται στη δική σας περίπτωση δεν αναφέρεται στις πηγές, οπότε ρωτήστε τον ΕΟΑ Πάφου, που είναι η αρμόδια πολεοδομική αρχή [K13]."
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "image_ok": true,
+  "image_note": "A clear, straight-on line drawing of the street facade rather than a photograph; the whole roof line is visible.",
+  "fields": [
+    {"key": "storeys", "label": "Storeys above ground", "value": "2", "confidence": 0.95, "region": "whole", "evidence": "two slab bands and two rows of windows below the roof"},
+    {"key": "structure", "label": "Structural system", "value": "RC frame with infill", "confidence": 0.8, "region": "centre", "evidence": "regular column lines and slab bands framing infill panels"},
+    {"key": "ground_floor", "label": "Ground floor", "value": "closed", "confidence": 0.85, "region": "bottom", "evidence": "infill walls with windows and a door in every bay"},
+    {"key": "balconies", "label": "Balconies", "value": "cantilever, cracked", "confidence": 0.6, "region": "centre", "evidence": "projecting slab with railing; short crack marks under its edge"},
+    {"key": "deterioration", "label": "Visible deterioration", "value": "possible cracking under the balcony slab", "confidence": 0.55, "region": "centre", "evidence": "zig-zag marks at the balcony soffit; no exposed rebar seen"},
+    {"key": "anamones", "label": "Rooftop starter bars (anamones)", "value": "present", "confidence": 0.9, "region": "top", "evidence": "rust-coloured bars rising above the roof at each column line"},
+    {"key": "rooftop_equipment", "label": "Rooftop equipment", "value": "solar water heater with tank on a stand", "confidence": 0.9, "region": "top-right", "evidence": "tilted collector panel with a cylindrical tank above it"},
+    {"key": "irregularity", "label": "Irregularity", "value": "none seen", "confidence": 0.7, "region": "whole", "evidence": "symmetric bays and equal storey heights"},
+    {"key": "era_estimate", "label": "Estimated construction era", "value": "1974 to 1993", "confidence": 0.5, "region": "whole", "evidence": "flat-roof RC house with starter bars; few other age cues"}
+  ],
+  "screening_priority": 3,
+  "priority_reason": "A likely pre-code RC frame with a closed ground floor. The cracked balcony and the uncertain age keep it at medium priority, and adding a floor would raise the demand on the ground floor.",
+  "engineer_checks": [
+    "Confirm the permit year and obtain the original drawings.",
+    "Measure ground-floor column sizes and test concrete strength.",
+    "Inspect the balcony slab edge for corroded reinforcement.",
+    "Assess the starter bars before any new floor is designed."
+  ],
+  "limitations": "An image cannot show reinforcement, concrete strength, foundations or the rear of the building."
+}
