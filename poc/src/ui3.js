@@ -322,10 +322,12 @@ function mount3d(b, pk) {
   $("#m3dQ").innerHTML = rows.map(r => `<div><dt>${esc(r[0])}</dt><dd>${esc(String(r[1]))}</dd></div>`).join("");
   const setStep = n => { n = Math.max(0, Math.min(8, n)); S.m3dStep = n; api.setStep(n); $("#m3dN").textContent = `${n} of 8`; $("#m3dT").textContent = A3D.STEPS[n].t; $("#m3dD").textContent = A3D.STEPS[n].d; $$("#m3dSteps button").forEach((x, i) => { x.classList.toggle("done", i < n); if (i === n) x.setAttribute("aria-current", "step"); else x.removeAttribute("aria-current"); }); };
   setStep(S.m3dStep ?? 8); api.setExplode(!!S.m3dEx, true);
-  $("#m3dSteps").addEventListener("click", e => { const bt = e.target.closest("button"); if (!bt) return; clearInterval(S.m3dTimer); setStep(+bt.dataset.s); });
-  $("#m3dPrev").addEventListener("click", () => { clearInterval(S.m3dTimer); setStep(S.m3dStep - 1); });
-  $("#m3dNext").addEventListener("click", () => { clearInterval(S.m3dTimer); setStep(S.m3dStep + 1); });
-  $("#m3dPlay").addEventListener("click", () => { clearInterval(S.m3dTimer); let n = 0; setStep(0); S.m3dTimer = setInterval(() => { n++; if (n > 8) { clearInterval(S.m3dTimer); return; } setStep(n); }, 1700); });
+  const stopPlay = () => { clearInterval(S.m3dTimer); clearTimeout(S.m3dAutoT); api.setAuto(false); };
+  $("#m3dSteps").addEventListener("click", e => { const bt = e.target.closest("button"); if (!bt) return; stopPlay(); setStep(+bt.dataset.s); });
+  $("#m3dPrev").addEventListener("click", () => { stopPlay(); setStep(S.m3dStep - 1); });
+  $("#m3dNext").addEventListener("click", () => { stopPlay(); setStep(S.m3dStep + 1); });
+  // Play: each step's parts glide into place while the camera orbits slowly round the house
+  $("#m3dPlay").addEventListener("click", () => { stopPlay(); let n = 0; setStep(0); api.setAuto(true, -0.03); S.m3dTimer = setInterval(() => { n++; if (n > 8) { clearInterval(S.m3dTimer); S.m3dAutoT = setTimeout(() => api.setAuto(false), 1500); return; } setStep(n); }, 1700); });
   $("#m3dMode").addEventListener("click", e => { const bt = e.target.closest("button"); if (!bt) return; S.m3dEx = bt.dataset.m === "1"; $$("#m3dMode button").forEach(x => x.setAttribute("aria-pressed", x === bt)); api.setExplode(S.m3dEx); });
   $("#m3dView").addEventListener("click", e => { const bt = e.target.closest("button"); if (!bt) return; $$("#m3dView button").forEach(x => x.setAttribute("aria-pressed", x === bt)); api.setView(bt.dataset.v); });
   $("#m3dX").addEventListener("change", e => api.setXray(e.target.checked));

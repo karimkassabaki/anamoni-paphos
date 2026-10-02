@@ -1055,7 +1055,9 @@ const A3D = (() => {
     const center = new THREE.Vector3(M.dims.w / 2 + 0.6, 4.4, -M.dims.d / 2);
     sun.target.position.copy(center);
     const camera = new THREE.PerspectiveCamera(32, W() / Hh(), 0.5, 400);
-    const st = { az: 0.62, el: 0.36, r: 33, target: center.clone(), step: STEPS.length - 1, explode: 0, explodeT: 0, xray: false, labels: opts.labels !== false, auto: false, dirty: true };
+    const st = { az: 0.62, el: 0.36, r: 33, target: center.clone(), step: STEPS.length - 1, explode: 0, explodeT: 0, xray: false, labels: opts.labels !== false, auto: false, autoRate: 0.18, dirty: true };
+    let rise = null; // parts added by the current build step glide down into place: { keys, t0 }
+    const DROP = 2.6, RISE_MS = 750;
     const VIEWS = { axo: [0.62, 0.36, 33], left: [-0.62, 0.38, 33], front: [0, 0.1, 34], top: [0.3, 1.25, 38], right: [0.95, 0.32, 33], back: [2.55, 0.42, 34] };
     function placeCam() { const { az, el: e } = st; const fit = Math.max(1, 1.5 / Math.max(0.3, camera.aspect)); const r = (st.r + st.explodeT * 11) * fit; const ty = st.target.y + st.explodeT * 3.4; camera.position.set(st.target.x + r * Math.sin(az) * Math.cos(e), ty + r * Math.sin(e), st.target.z + r * Math.cos(az) * Math.cos(e)); camera.lookAt(st.target.x, ty, st.target.z); }
     // labels
@@ -1076,7 +1078,7 @@ const A3D = (() => {
       for (const c of M.G.existing.userData.gfCols) c.material = (s === 1 || (xr && s < 2)) ? mat(C.weak, { roughness: 0.7 }) : mat(C.conc);
     }
     function applyExplode() {
-      for (const [k, g] of Object.entries(M.G)) { const e = g.userData.explode; g.position.set(e[0] * st.explodeT, e[1] * st.explodeT, e[2] * st.explodeT); }
+      for (const [k, g] of Object.entries(M.G)) { const e = g.userData.explode; g.position.set(e[0] * st.explodeT, e[1] * st.explodeT + (g.userData.drop || 0), e[2] * st.explodeT); }
     }
     const lead = document.createElementNS("http://www.w3.org/2000/svg", "svg"); lead.setAttribute("class", "m3d-lead"); lab.prepend(lead);
     function drawLabels() {
@@ -1115,7 +1117,13 @@ const A3D = (() => {
     function frame(t) {
       const dt = Math.min(0.05, (t - last) / 1000); last = t;
       const target = st.explode; if (Math.abs(st.explodeT - target) > 0.001) { st.explodeT += (target - st.explodeT) * Math.min(1, dt * 5); applyExplode(); st.dirty = true; }
-      if (st.auto) { st.az += dt * 0.18; st.dirty = true; }
+      if (rise) {
+        if (rise.t0 == null) rise.t0 = t;
+        const p = Math.min(1, (t - rise.t0) / RISE_MS), e = 1 - Math.pow(1 - p, 3);
+        for (const k of rise.keys) M.G[k].userData.drop = (1 - e) * DROP;
+        applyExplode(); st.dirty = true; if (p >= 1) rise = null;
+      }
+      if (st.auto) { st.az += dt * st.autoRate; st.dirty = true; }
       if (st.dirty) { st.dirty = false; placeCam(); renderer.render(scene, camera); drawLabels(); } // render only when something changed
       raf = requestAnimationFrame(frame);
     }
@@ -1130,13 +1138,21 @@ const A3D = (() => {
     if (!opts.still) raf = requestAnimationFrame(frame);
     const api = {
       STEPS, Q: M.Q, layout: M.L,
-      setStep(s) { st.step = Math.max(0, Math.min(STEPS.length - 1, s)); applyStep(); st.dirty = true; },
+      setStep(s) {
+        const prev = st.step; st.step = Math.max(0, Math.min(STEPS.length - 1, s)); applyStep();
+        if (rise) { for (const k of rise.keys) M.G[k].userData.drop = 0; rise = null; }
+        if (st.step === prev + 1 && !opts.still) {   // one step forward: the new parts glide down into place
+          const keys = Object.keys(M.G).filter(k => k !== "roofOld" && M.G[k].userData.step === st.step);
+          if (keys.length) { for (const k of keys) M.G[k].userData.drop = DROP; rise = { keys, t0: null }; }
+        }
+        applyExplode(); st.dirty = true;
+      },
       setExplode(on, instant) { st.explode = on ? 1 : 0; if (instant) { st.explodeT = st.explode; applyExplode(); } st.dirty = true; },
       setView(v) { const p = VIEWS[v]; if (p) { st.az = p[0]; st.el = p[1]; st.r = p[2]; } st.dirty = true; },
       setOrbit(az, e, r) { if (az != null) st.az = az; if (e != null) st.el = e; if (r != null) st.r = r; st.dirty = true; },
       setXray(on) { st.xray = on; applyStep(); st.dirty = true; },
       setLabels(on) { st.labels = on; st.dirty = true; },
-      setAuto(on) { st.auto = on; },
+      setAuto(on, rate) { st.auto = on; if (rate) st.autoRate = rate; },
       renderNow() { placeCam(); renderer.render(scene, camera); drawLabels(); },
       dispose() { cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); el.innerHTML = ""; },
     };
@@ -2168,10 +2184,12 @@ function mount3d(b, pk) {
   $("#m3dQ").innerHTML = rows.map(r => `<div><dt>${esc(r[0])}</dt><dd>${esc(String(r[1]))}</dd></div>`).join("");
   const setStep = n => { n = Math.max(0, Math.min(8, n)); S.m3dStep = n; api.setStep(n); $("#m3dN").textContent = `${n} of 8`; $("#m3dT").textContent = A3D.STEPS[n].t; $("#m3dD").textContent = A3D.STEPS[n].d; $$("#m3dSteps button").forEach((x, i) => { x.classList.toggle("done", i < n); if (i === n) x.setAttribute("aria-current", "step"); else x.removeAttribute("aria-current"); }); };
   setStep(S.m3dStep ?? 8); api.setExplode(!!S.m3dEx, true);
-  $("#m3dSteps").addEventListener("click", e => { const bt = e.target.closest("button"); if (!bt) return; clearInterval(S.m3dTimer); setStep(+bt.dataset.s); });
-  $("#m3dPrev").addEventListener("click", () => { clearInterval(S.m3dTimer); setStep(S.m3dStep - 1); });
-  $("#m3dNext").addEventListener("click", () => { clearInterval(S.m3dTimer); setStep(S.m3dStep + 1); });
-  $("#m3dPlay").addEventListener("click", () => { clearInterval(S.m3dTimer); let n = 0; setStep(0); S.m3dTimer = setInterval(() => { n++; if (n > 8) { clearInterval(S.m3dTimer); return; } setStep(n); }, 1700); });
+  const stopPlay = () => { clearInterval(S.m3dTimer); clearTimeout(S.m3dAutoT); api.setAuto(false); };
+  $("#m3dSteps").addEventListener("click", e => { const bt = e.target.closest("button"); if (!bt) return; stopPlay(); setStep(+bt.dataset.s); });
+  $("#m3dPrev").addEventListener("click", () => { stopPlay(); setStep(S.m3dStep - 1); });
+  $("#m3dNext").addEventListener("click", () => { stopPlay(); setStep(S.m3dStep + 1); });
+  // Play: each step's parts glide into place while the camera orbits slowly round the house
+  $("#m3dPlay").addEventListener("click", () => { stopPlay(); let n = 0; setStep(0); api.setAuto(true, -0.03); S.m3dTimer = setInterval(() => { n++; if (n > 8) { clearInterval(S.m3dTimer); S.m3dAutoT = setTimeout(() => api.setAuto(false), 1500); return; } setStep(n); }, 1700); });
   $("#m3dMode").addEventListener("click", e => { const bt = e.target.closest("button"); if (!bt) return; S.m3dEx = bt.dataset.m === "1"; $$("#m3dMode button").forEach(x => x.setAttribute("aria-pressed", x === bt)); api.setExplode(S.m3dEx); });
   $("#m3dView").addEventListener("click", e => { const bt = e.target.closest("button"); if (!bt) return; $$("#m3dView button").forEach(x => x.setAttribute("aria-pressed", x === bt)); api.setView(bt.dataset.v); });
   $("#m3dX").addEventListener("change", e => api.setXray(e.target.checked));
