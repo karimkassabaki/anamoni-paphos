@@ -6,7 +6,7 @@ ANAMONI screens every building in a city for earthquake risk, tells each owner w
 
 - **Live demo (AI runs live for viewers signed in to Claude):** https://claude.ai/artifact/PuxTkPPh7BHdij3pXKeP4R
 - **Mirror (no sign-in; AI steps replay recorded runs):** https://karimkassabaki.github.io/anamoni-paphos/
-- **Backup video (3 min):** https://youtu.be/6aexrWPU6oU
+- **Walkthrough video (2 min 44 s, 1080p):** https://youtu.be/OeiP5xToBwU
 
 ![City scan](docs/shot_overview.png)
 
